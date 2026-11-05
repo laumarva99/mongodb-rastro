@@ -135,3 +135,92 @@ Ejercicio A6
 8.Referenciaría en la colección resenas porque un producto popular puede tener miles de reseñas
 
 
+Ejercicio B2.3
+
+No he tenido que modificar nada antes de insertar el anuncio. MongoDB permite guardar documentos con distintos campos, así que el anuncio de Deporte se guarda directamente con sus atributos (talla, tipo y pulgadasRueda). En PostgreSQL habría tenido que usar ALTER TABLE para añadir las nuevas columnas o crear una tabla deporte y añadir otro JOIN a las consultas.
+
+
+Ejercicio B4
+
+
+1: Un usuario con el email de Ana
+Predicción: fallará, porque en el B3.1 creamos un índice único sobre email
+MongoServerError: E11000 duplicate key error collection: rastro.usuarios index: email_1 dup key: { email: "ana@rastro.es" }
+El índice es único, por eso no se puede duplicar el correo
+
+
+2:Hugo valora otra vez a Marta por el mismo anuncio
+Predicción: fallará, por el índice único sobre autor.id + anuncioId
+MongoServerError: E11000 duplicate key error collection: rastro.valoraciones index: autor.id_1_anuncioId_1 dup key: { autor.id: ObjectId('660000000000000000000004'), anuncioId: ObjectId('670000000000000000000004') }
+Ya existe una valoración con ese autor y ese anuncio en el índice único
+
+
+
+3:Un anuncio de un vendedor que no existe
+Predicción: se guardará, porque MongoDB no comprueba si un id apunta a algo que existe
+Es un gran problema porque hay un anuncio de un vendedor que no existe en usuarios. Si alguien pulsa en el perfil del vendedor, no encontrará nada
+
+
+
+4: Un anuncio con el precio escrito como texto
+Predicción: el insert se realizará sin problemas, porque MongoDB no obliga a que los campos tengan un tipo de dato concreto. Sin embargo, al buscar anuncios de menos de 100 €, la lámpara no aparecerá en los resultados
+Es un problema porque cuando alguien quiera buscar un anuncio al filtrar por precio, no le aparecerá
+
+
+5: Cambiar el precio del Xiaomi sin operador
+Predicción: fallará, porque updateOne necesita un operador como $set
+MongoInvalidArgumentError: Update document requires atomic operators
+Sin $set se intenta reemplazar todo el documento por { precio: 80 }, pero se perderían los demás datos. Por eso, mongo bloquea la acción
+
+
+6:Buscar el iPhone por su id escrito como texto
+Predicción: no lo encontrará, porque el _id es un ObjectId, no un texto
+Devuelve un NULL porque no ha encontrado nada. Es un problema porque es engañoso, parece que el iPhone no existe
+
+
+7.
+En el gimnasio, habría mostrado un error porque el plan_id no existe y no habría dejado guardar el socio. En Rastro, como Mongo no comprueba las claves ajenas, esa comprobación tiene que hacerla el backend antes de guardar el anuncio, mirando si el vendedor existe en la colección usuarios
+
+8. La lámpara no aparece porque el precio se guardó como texto ("75") en vez de como número. Al buscar precios inferiores a 100, Mongo no la encuentra porque está comparando un texto con un número
+
+9.
+En los dos ejercicios se guardaron datos incorrectos y MongoDB no dio ningún error porque no comprueba automáticamente si las referencias existen ni si los campos tienen el tipo de dato correcto
+
+
+Ejercicio B5.12
+
+No dan error. Simplemente no salen, porque no tienen ese campo y no cumplen el filtro
+
+
+Ejercicio B8
+
+1.
+En MongoDB está todo en un solo documento (fotos, atributos, vendedor) y se lee de una vez, sin JOIN. Además, cada anuncio guarda solo lo suyo, y si sale una categoría nueva no hay que cambiar nada
+
+2.
+Los pagos. Con el dinero no puede haber errores, y SQL comprueba mejor que todo esté bien
+
+3.
+Las fotos son pocas y siempre se ven con el anuncio. Las ofertas pueden ser muchísimas, y el comprador quiere verlas por separado en «mis ofertas»
+
+4.
+Para recordar cuánto costaba cuando se hizo la oferta, como un ticket. Aunque el precio cambie después, la oferta no cambia
+
+5.
+Es copiar un dato en varios sitios. se lee más rápido pero si el dato cambia, hay que cambiarlo en todos los sitios. Lo vi cuando Luis cambió su nombre
+
+6.
+
+El programa (el código de la app). MongoDB no tiene claves ajenas y deja guardar referencias a cosas que no existen
+
+
+RETO 2.
+Al LEFT JOIN. Une dos colecciones por un campo
+
+
+RETO 3
+Utilizaría embebido, dentro del anuncio. Un anuncio cambia de precio pocas veces. El historial solo es de esee anuncio y se necesita al mostrar la ficha («ha bajado de precio»)
+
+RETO 4
+Error: MongoServerError: Document failed validation
+Rechaza el anuncio porque el precio es texto ("75") y no un número. Con $jsonSchema, MongoDB puede comprobar los tipos. Como ha fallado, no se ha guardado nada y no tienes que borrar la lámpara
